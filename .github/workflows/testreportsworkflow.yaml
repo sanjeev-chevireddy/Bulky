@@ -10,8 +10,6 @@ permissions:
 jobs:
   setup-test-artifacts:
     runs-on: ubuntu-latest
-    outputs:
-      artifact-names: ${{ steps.set-outputs.outputs.artifact-names }}
     steps:
       - uses: actions/checkout@v4
       
@@ -25,52 +23,59 @@ jobs:
           done
           
       - name: Upload tradingprograms artifact
-        id: upload-tradingprograms
         uses: actions/upload-artifact@v4
         with:
           name: github-pages-tradingprograms
           path: sample-reports/tradingprograms
           
       - name: Upload imports artifact
-        id: upload-imports
         uses: actions/upload-artifact@v4
         with:
           name: github-pages-imports
           path: sample-reports/imports
           
       - name: Upload mechanisms artifact
-        id: upload-mechanisms
         uses: actions/upload-artifact@v4
         with:
           name: github-pages-mechanisms
           path: sample-reports/mechanisms
           
       - name: Upload reports artifact
-        id: upload-reports
         uses: actions/upload-artifact@v4
         with:
           name: github-pages-reports
           path: sample-reports/reports
-          
-      - name: Set artifact names output
-        id: set-outputs
-        run: |
-          echo "artifact-names=github-pages-tradingprograms,github-pages-imports,github-pages-mechanisms,github-pages-reports" >> $GITHUB_OUTPUT
 
   aggregate-results:
     needs: setup-test-artifacts
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifacts one by one
-        run: |
-          mkdir -p all-html-files
-          IFS=',' read -ra artifacts <<< "${{ needs.setup-test-artifacts.outputs.artifact-names }}"
-          for artifact in "${artifacts[@]}"; do
-            echo "Downloading $artifact..."
-            gh run download $GITHUB_RUN_ID -n "$artifact" -D all-html-files/$artifact
-          done
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create working directory
+        run: mkdir -p all-html-files
+        
+      - name: Download tradingprograms artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages-tradingprograms
+          path: all-html-files/tradingprograms
+          
+      - name: Download imports artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages-imports
+          path: all-html-files/imports
+          
+      - name: Download mechanisms artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages-mechanisms
+          path: all-html-files/mechanisms
+          
+      - name: Download reports artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: github-pages-reports
+          path: all-html-files/reports
 
       - name: Verify downloaded artifacts
         run: ls -R all-html-files
