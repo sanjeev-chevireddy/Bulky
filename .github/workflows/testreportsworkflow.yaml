@@ -86,7 +86,8 @@ jobs:
       - name: Create main index.html
         run: |
           # First generate the HTML header with the dynamic date
-          cat > aggregated-html-files/index.html << 'HTMLHEAD'
+          CURRENT_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          cat > aggregated-html-files/index.html << EOF
           <!DOCTYPE html>
           <html lang="en">
           <head>
@@ -105,9 +106,9 @@ jobs:
           </head>
           <body>
               <h1>Test Reports Dashboard</h1>
-              <p class="timestamp">Generated on $(date -u +"%Y-%m-%d %H:%M:%S UTC")</p>
+              <p class="timestamp">Generated on $CURRENT_DATE</p>
               <ul>
-          HTMLHEAD
+          EOF
 
           # Find all index.html files and create links to them
           for dir in $(find ./all-html-files -type d); do
