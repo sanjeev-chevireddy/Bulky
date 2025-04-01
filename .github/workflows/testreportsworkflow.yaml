@@ -85,7 +85,9 @@ jobs:
 
       - name: Create main index.html
         run: |
-          echo '<!DOCTYPE html>
+          # First generate the HTML header with the dynamic date
+          cat > aggregated-html-files/index.html << 'HTMLHEAD'
+          <!DOCTYPE html>
           <html lang="en">
           <head>
               <meta charset="UTF-8">
@@ -103,8 +105,9 @@ jobs:
           </head>
           <body>
               <h1>Test Reports Dashboard</h1>
-              <p class="timestamp">Generated on $(date +"%Y-%m-%d %H:%M:%S %Z")</p>
-              <ul>' > aggregated-html-files/index.html
+              <p class="timestamp">Generated on $(date -u +"%Y-%m-%d %H:%M:%S UTC")</p>
+              <ul>
+          HTMLHEAD
 
           # Find all index.html files and create links to them
           for dir in $(find ./all-html-files -type d); do
@@ -114,12 +117,20 @@ jobs:
               fi
           done
 
-          echo '</ul>
+          # Add the HTML footer
+          cat >> aggregated-html-files/index.html << 'HTMLFOOT'
+              </ul>
           </body>
-          </html>' >> aggregated-html-files/index.html
+          </html>
+          HTMLFOOT
 
           # Copy all the report files to the aggregated folder
           cp -r ./all-html-files/* aggregated-html-files/
+
+      - name: Verify generated index.html
+        run: |
+          echo "Generated index.html content:"
+          cat aggregated-html-files/index.html
 
       - name: Upload Aggregated Test Results
         uses: actions/upload-pages-artifact@v3
