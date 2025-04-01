@@ -10,6 +10,8 @@ permissions:
 jobs:
   setup-test-artifacts:
     runs-on: ubuntu-latest
+    outputs:
+      artifact-names: ${{ steps.set-outputs.outputs.artifact-names }}
     steps:
       - uses: actions/checkout@v4
       
@@ -22,39 +24,56 @@ jobs:
             echo "<html><body><h1>Test Report for $dir</h1><p>Sample content for testing</p></body></html>" > "sample-reports/$dir/index.html"
           done
           
-      - name: Upload sample artifacts
+      - name: Upload tradingprograms artifact
+        id: upload-tradingprograms
         uses: actions/upload-artifact@v4
         with:
           name: github-pages-tradingprograms
           path: sample-reports/tradingprograms
           
-      - name: Upload more sample artifacts
+      - name: Upload imports artifact
+        id: upload-imports
         uses: actions/upload-artifact@v4
         with:
           name: github-pages-imports
           path: sample-reports/imports
           
-      - name: Upload additional artifacts
+      - name: Upload mechanisms artifact
+        id: upload-mechanisms
         uses: actions/upload-artifact@v4
         with:
           name: github-pages-mechanisms
           path: sample-reports/mechanisms
           
-      - name: Upload final artifacts
+      - name: Upload reports artifact
+        id: upload-reports
         uses: actions/upload-artifact@v4
         with:
           name: github-pages-reports
           path: sample-reports/reports
+          
+      - name: Set artifact names output
+        id: set-outputs
+        run: |
+          echo "artifact-names=github-pages-tradingprograms,github-pages-imports,github-pages-mechanisms,github-pages-reports" >> $GITHUB_OUTPUT
 
   aggregate-results:
     needs: setup-test-artifacts
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: github-pages-*
-          path: ./all-html-files
+      - name: Download artifacts one by one
+        run: |
+          mkdir -p all-html-files
+          IFS=',' read -ra artifacts <<< "${{ needs.setup-test-artifacts.outputs.artifact-names }}"
+          for artifact in "${artifacts[@]}"; do
+            echo "Downloading $artifact..."
+            gh run download $GITHUB_RUN_ID -n "$artifact" -D all-html-files/$artifact
+          done
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify downloaded artifacts
+        run: ls -R all-html-files
 
       - name: Create aggregated directory
         run: mkdir -p aggregated-html-files
@@ -97,9 +116,6 @@ jobs:
           # Copy all the report files to the aggregated folder
           cp -r ./all-html-files/* aggregated-html-files/
 
-      - name: List files for verification
-        run: ls -R aggregated-html-files
-
       - name: Upload Aggregated Test Results
         uses: actions/upload-pages-artifact@v3
         with:
@@ -119,6 +135,7 @@ jobs:
         uses: actions/deploy-pages@v4
         with:
           artifact_name: github-pages
+          token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Show deployment URL
         run: echo "Deployed to ${{ steps.deployment.outputs.page_url }}"
