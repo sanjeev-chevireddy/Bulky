@@ -8,7 +8,6 @@ permissions:
   id-token: write
 
 jobs:
-  # This job simulates having existing test artifacts
   setup-test-artifacts:
     runs-on: ubuntu-latest
     steps:
@@ -24,25 +23,25 @@ jobs:
           done
           
       - name: Upload sample artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: github-pages-tradingprograms
           path: sample-reports/tradingprograms
           
       - name: Upload more sample artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: github-pages-imports
           path: sample-reports/imports
           
       - name: Upload additional artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: github-pages-mechanisms
           path: sample-reports/mechanisms
           
       - name: Upload final artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: github-pages-reports
           path: sample-reports/reports
@@ -52,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: github-pages-*
           path: ./all-html-files
