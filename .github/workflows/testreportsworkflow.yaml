@@ -1,0 +1,125 @@
+name: Test Aggregation and Deployment to GitHub Pages
+
+on:
+  workflow_dispatch:
+  
+permissions:
+  pages: write
+  id-token: write
+
+jobs:
+  # This job simulates having existing test artifacts
+  setup-test-artifacts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create sample test reports
+        run: |
+          mkdir -p sample-reports
+          # Create sample directories and index.html files
+          for dir in tradingprograms imports mechanisms reports; do
+            mkdir -p "sample-reports/$dir"
+            echo "<html><body><h1>Test Report for $dir</h1><p>Sample content for testing</p></body></html>" > "sample-reports/$dir/index.html"
+          done
+          
+      - name: Upload sample artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: github-pages-tradingprograms
+          path: sample-reports/tradingprograms
+          
+      - name: Upload more sample artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: github-pages-imports
+          path: sample-reports/imports
+          
+      - name: Upload additional artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: github-pages-mechanisms
+          path: sample-reports/mechanisms
+          
+      - name: Upload final artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: github-pages-reports
+          path: sample-reports/reports
+
+  aggregate-results:
+    needs: setup-test-artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: github-pages-*
+          path: ./all-html-files
+
+      - name: Create aggregated directory
+        run: mkdir -p aggregated-html-files
+
+      - name: Create main index.html
+        run: |
+          echo '<!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Test Reports Dashboard</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 20px; }
+                  h1 { color: #333; }
+                  ul { list-style-type: none; padding: 0; }
+                  li { margin: 10px 0; }
+                  a { text-decoration: none; color: #0366d6; }
+                  a:hover { text-decoration: underline; }
+                  .timestamp { color: #666; font-size: 0.9em; }
+              </style>
+          </head>
+          <body>
+              <h1>Test Reports Dashboard</h1>
+              <p class="timestamp">Generated on $(date)</p>
+              <ul>' > aggregated-html-files/index.html
+
+          # Find all index.html files and create links to them
+          for dir in $(find ./all-html-files -type d); do
+              if [ -f "$dir/index.html" ]; then
+                  relative_path=$(echo $dir | sed 's|./all-html-files/||')
+                  echo "<li><a href=\"$relative_path/index.html\">$relative_path Test Report</a></li>" >> aggregated-html-files/index.html
+              fi
+          done
+
+          echo '</ul>
+          </body>
+          </html>' >> aggregated-html-files/index.html
+
+          # Copy all the report files to the aggregated folder
+          cp -r ./all-html-files/* aggregated-html-files/
+
+      - name: List files for verification
+        run: ls -R aggregated-html-files
+
+      - name: Upload Aggregated Test Results
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./aggregated-html-files
+          name: github-pages
+
+  deploy:
+    needs: aggregate-results
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages
+          
+      - name: Show deployment URL
+        run: echo "Deployed to ${{ steps.deployment.outputs.page_url }}"
