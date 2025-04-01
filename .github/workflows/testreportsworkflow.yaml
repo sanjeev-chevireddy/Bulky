@@ -103,7 +103,7 @@ jobs:
           </head>
           <body>
               <h1>Test Reports Dashboard</h1>
-              <p class="timestamp">Generated on $(date)</p>
+              <p class="timestamp">Generated on $(date +"%Y-%m-%d %H:%M:%S %Z")</p>
               <ul>' > aggregated-html-files/index.html
 
           # Find all index.html files and create links to them
